@@ -304,14 +304,14 @@ var FALLBACK_COLOR = "#8a94b8"; // single-colour histogram if the age cohorts ca
 var STH_BANDS = 8;
 var STH_COLOR = "#e6a817", LTH_COLOR = "#5599ff";
 var AGE_BANDS = [
-  {cohort:"utxos_under_1h_old", label:"<1h"}, {cohort:"utxos_1h_to_1d_old", label:"1h-1d"}, {cohort:"utxos_1d_to_1w_old", label:"1d-1w"},
-  {cohort:"utxos_1w_to_1m_old", label:"1w-1m"}, {cohort:"utxos_1m_to_2m_old", label:"1m-2m"}, {cohort:"utxos_2m_to_3m_old", label:"2m-3m"},
-  {cohort:"utxos_3m_to_4m_old", label:"3m-4m"}, {cohort:"utxos_4m_to_5m_old", label:"4m-5m"}, {cohort:"utxos_5m_to_6m_old", label:"5m-6m"},
-  {cohort:"utxos_6m_to_9m_old", label:"6m-9m"}, {cohort:"utxos_9m_to_1y_old", label:"9m-1y"}, {cohort:"utxos_1y_to_18m_old", label:"1y-18m"},
-  {cohort:"utxos_18m_to_2y_old", label:"18m-2y"}, {cohort:"utxos_2y_to_3y_old", label:"2y-3y"},
-  {cohort:"utxos_3y_to_4y_old", label:"3y-4y"}, {cohort:"utxos_4y_to_5y_old", label:"4y-5y"}, {cohort:"utxos_5y_to_6y_old", label:"5y-6y"},
-  {cohort:"utxos_6y_to_7y_old", label:"6y-7y"}, {cohort:"utxos_7y_to_8y_old", label:"7y-8y"}, {cohort:"utxos_8y_to_10y_old", label:"8y-10y"},
-  {cohort:"utxos_10y_to_12y_old", label:"10y-12y"}, {cohort:"utxos_12y_to_15y_old", label:"12y-15y"}, {cohort:"utxos_over_15y_old", label:">15y"}
+  {cohort:"age_under_1h", label:"<1h"}, {cohort:"age_1h_to_1d", label:"1h-1d"}, {cohort:"age_1d_to_1w", label:"1d-1w"},
+  {cohort:"age_1w_to_1m", label:"1w-1m"}, {cohort:"age_1m_to_2m", label:"1m-2m"}, {cohort:"age_2m_to_3m", label:"2m-3m"},
+  {cohort:"age_3m_to_4m", label:"3m-4m"}, {cohort:"age_4m_to_5m", label:"4m-5m"}, {cohort:"age_5m_to_6m", label:"5m-6m"},
+  {cohort:"age_6m_to_9m", label:"6m-9m"}, {cohort:"age_9m_to_1y", label:"9m-1y"}, {cohort:"age_1y_to_18m", label:"1y-18m"},
+  {cohort:"age_18m_to_2y", label:"18m-2y"}, {cohort:"age_2y_to_3y", label:"2y-3y"},
+  {cohort:"age_3y_to_4y", label:"3y-4y"}, {cohort:"age_4y_to_5y", label:"4y-5y"}, {cohort:"age_5y_to_6y", label:"5y-6y"},
+  {cohort:"age_6y_to_7y", label:"6y-7y"}, {cohort:"age_7y_to_8y", label:"7y-8y"}, {cohort:"age_8y_to_10y", label:"8y-10y"},
+  {cohort:"age_10y_to_12y", label:"10y-12y"}, {cohort:"age_12y_to_15y", label:"12y-15y"}, {cohort:"age_over_15y", label:">15y"}
 ];
 // ---- Age colours: a spectrogram of age, readable with no words at all ------------------------------
 // Unclassed, the same palette as the published videos. A band's colour sits where its geometric mid-age
@@ -846,11 +846,13 @@ function cleanSeries(list, ok) {
 // 2026-09-23); anything else is dropped.
 function cleanCohort(obj) {
   if (!obj || typeof obj !== "object" || Array.isArray(obj)) throw pageError(function() { return t("errCostBasis"); });
+  var buckets = obj.buckets;
+  if (!buckets || !Array.isArray(buckets.price) || !Array.isArray(buckets.supply)) throw pageError(function() { return t("errCostBasis"); });
   var out = {}, dropped = 0;
-  for (var k in obj) {
-    if (!Object.prototype.hasOwnProperty.call(obj, k)) continue;
-    var p = Number(k);
-    if (k !== "" && isFinite(p) && p >= 0 && isAmount(obj[k])) out[k] = obj[k]; else dropped++;
+  for (var i = 0; i < buckets.price.length; i++) {
+    var p = Number(buckets.price[i]);
+    var v = buckets.supply[i];
+    if (isFinite(p) && p >= 0 && isAmount(v)) out[String(p)] = (out[String(p)] || 0) + v; else dropped++;
   }
   if (dropped) console.warn("Ignored " + dropped + " malformed cost-basis entries");
   return out;
@@ -1371,7 +1373,7 @@ function fetchRaw(dateStr) {
   var p = (raw.age ? Promise.resolve(raw.age) : Promise.all(AGE_BANDS.map(function(band, ci) {
       if (raw.cohorts[ci]) return raw.cohorts[ci];
       if (!isDateString(dateStr)) return Promise.reject(pageError(function() { return t("errNotDate") + dateStr; }));
-      var cohortPromise = fetchJSON(BASE + "/api/series/cost-basis/" + band.cohort + "/" + dateStr).then(cleanCohort);
+      var cohortPromise = fetchJSON(BASE + "/api/urpd/" + band.cohort + "/" + dateStr).then(cleanCohort);
       raw.cohorts[ci] = cohortPromise;
       cohortPromise.then(function(value) { raw.cohorts[ci] = value; }, function() { delete raw.cohorts[ci]; });
       // Empty cohorts return 200 with {}. A 404 is a failure, never an empty band.
@@ -2408,7 +2410,7 @@ async function init() {
   try {
     wordDateBox(function() { return t("loadingDates"); });
     var loaded = await Promise.all([
-      fetchJSON(BASE + "/api/series/cost-basis/all/dates"),
+      fetchJSON(BASE + "/api/series/date/day1").then(function(d){ return d && d.data ? d.data : []; }),
       fetchJSON(BASE + "/api/series/price_close/day1").catch(function(e) { console.warn("Price array preload failed:", e); return null; }),
       fetchJSON(BASE + "/api/series/date/day1").catch(function(e) { console.warn("Price date index preload failed, using UTC epoch fallback:", e); return null; }),
       // The axis history (see "Axes that only grow"). Without it every day still draws, on axes fitted to itself.
