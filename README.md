@@ -73,8 +73,7 @@ The price axis needs the whole history to be a function of the date alone, which
 day’s download contains, so `data/scales.json` (about 5 KB) carries it: for every day
 since 2009-01-03, the right end of the price axis, as steps. `tools/build-scales.cjs` builds it with the page’s own binning code;
 run again, it extends the file by each finished day (23 requests to bitview.space per
-day). The Monthly videos workflow does that every day (it runs daily for this, and draws
-the videos once a month) and commits the result. Days after the file’s last day still
+day). The Days after the file’s last day still
 draw, carrying on from its last values with their own data.
 
 To deploy: push to GitHub and enable Pages on `main` at the repository root. That is
@@ -97,7 +96,7 @@ node --test tests/*.test.cjs
 
 The tests execute the application source with controlled network and rendering
 interfaces. They cover navigation races, date and value calculations, binning and the
-axes, render completion, the axis-history builder, the video’s store and the security
+axes, render completion, the axis-history builder and the security
 rules (`tests/security.test.cjs`). GitHub Actions runs the same checks on pushes and
 pull requests. After editing an inline script in `index.html`, run
 `node tools/update-csp.cjs` so the Content-Security-Policy allows the new version.
