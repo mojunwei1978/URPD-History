@@ -11,8 +11,6 @@ profit and in loss at the day's price. Data from Bitcoin Research Kit.
 
 - **Scrub through history:** drag the orange dot along the price line, or use **← / →** (step size **1D / 1W / 1M /
   1Y**, keys **1** to **4**); see [Controls](#controls).
-- **Full-history videos:** four 5-minute 4K videos on YouTube, one for each weighting and colouring (% USD or % BTC,
-  LTH/STH or AGE), in the toolbar's **FULL HISTORY VIDEOS** menu; see [How it works](#how-it-works).
 - **Explainer** in English, Chinese and Japanese: **?** in the toolbar.
 
 ## Reading it
@@ -51,10 +49,7 @@ Toolbar, left to right:
 - **Bottom signal** — the share of the day in loss (value in % USD mode, 80% by default; coins in % BTC mode, 50%) at which the dashed line and the price box turn yellow and the box adds a line naming the threshold
 - **Bins**, **Smoothing** and **Y-max** — bins, how many equal-width bars the price axis is cut into up to the highest price so far (625 by default, 50 to 1000), with one more past it that takes in what the smoothing spreads beyond it, and each bar's width in dollars on the day shown after the count (BINS 625 $201); smoothing, which spreads each price stamp back over the dollar (ten dollars above $100K) it was rounded from and blurs it with a Gaussian of 0.24% of price by default; and Y-max, the percentile of the day’s bar heights where the left axis ends (100 in % USD mode, 99.8 in % BTC mode, each kept as you type it)
 - **Click and drag** across the chart — mark a range of prices (whole columns); the mark stays as you move through the days and switch modes until a double-click or Escape clears it, and gives the share of the day that last moved inside it (of the value in % USD, of the coins in % BTC) and, in LTH/STH, the most days until every coin there is a long-term holder
-- **FULL HISTORY VIDEOS** — a menu of the latest 5-minute full-history videos on YouTube, one for each weighting and colouring: **VIDEO (% USD-LTH/STH)**, **VIDEO (% USD-AGE)**, **VIDEO (% BTC-LTH/STH)** and **VIDEO (% BTC-AGE)** (each opens the channel until there is a video of it others can watch)
 - together at the right-hand end: **?** for the explainer and the GitHub mark for the source, as icons, and the language toggle
-
-The chart's camera icon saves a PNG of it; there is no video download.
 
 The toolbar is always one row and never scrolls. Where the controls do not fit the window, its spacing tightens, then
 its type goes a size down, and past that the whole bar is drawn smaller, every word kept.
@@ -72,27 +67,7 @@ fetched per day from the Bitcoin Research Kit API mirrored at
 (`/api/series/cost-basis/<cohort>/<date>`). Loaded days are cached in memory, so
 scrubbing backwards is instant.
 
-**FULL HISTORY VIDEOS** in the toolbar opens a menu of four, **VIDEO (% USD-LTH/STH)**, **VIDEO (% USD-AGE)**,
-**VIDEO (% BTC-LTH/STH)** and **VIDEO (% BTC-AGE)**, each of which opens the whole history as one video on YouTube,
-drawn as the page draws that choice by default: USD with the left axis at
-each day’s tallest bar (each frame’s, as the days blend into each other), from 2011-01-31, the first day with any value
-on the chart, and BTC with Y-max at 99.8, its first bar running off the top with its height printed, from 2010-05-18,
-when the first price comes onto the chart; the bars as short- and long-term holders (LTH/STH) or in their 23 age bands
-(AGE); the bottom signal at its default threshold (80% in loss in USD, 50% in BTC); all four to the latest day,
-5:00 at 60 fps in 4K (3840×2160).
-The **Monthly videos** workflow draws all four again once a month on GitHub’s runners, one runner each, taking in the month
-since the last ones, and posts them to YouTube (see [Posting to YouTube](#posting-to-youtube)). Run by hand (**Actions → Monthly
-videos → Run workflow**), it draws all four at once, or with **only** (`usd-age`, `btc-age`, `usd-lthsth` or
-`btc-lthsth`) just one of them: run with `all`, it publishes and posts all four and starts a new month; with one, that
-one is posted and its link in the menu updated, while the release and its month stay as they are until the next monthly run draws
-all four together.
-The site offers no file to download, so that a break-in could not use it to hand anyone a file. The workflow keeps its
-latest renders on the `video` release, whose notes tell the next run which day they reach; nothing links to them. A
-render goes out only after it is checked to be exactly the expected video and attested (see [SECURITY.md](SECURITY.md)).
-It renders with `tools/video` (Playwright, Plotly and ffmpeg, installed only there; `tools/video/looks.mjs` holds the
-four looks), from a store of every day’s bars in their age bands, in dollars and in coins, kept on the `video-store-2` release: past days never change, so each day’s run adds the new day, and once a month the 18,000 frames
-of each video are drawn again. Free for a public
-repository.
+The site offers no file to download, so that a break-in could not use it to hand anyone a file.
 
 The price axis needs the whole history to be a function of the date alone, which no single
 day’s download contains, so `data/scales.json` (about 5 KB) carries it: for every day
@@ -105,45 +80,10 @@ draw, carrying on from its last values with their own data.
 To deploy: push to GitHub and enable Pages on `main` at the repository root. That is
 the whole deployment.
 
-## Posting to YouTube
-
-After publishing the videos, the **Monthly videos** workflow posts all four to the [renshuBTC](https://www.youtube.com/@renshuBTC)
-channel with `tools/video/youtube.mjs`, through the YouTube Data API, each from a job of its own: one video's trouble
-does not hold back the others, and a failed post can be run again (**Re-run failed jobs**, within a week) without
-posting the others twice. Each month's videos go up **unlisted** (anyone with the link can watch them; they are shown neither on the
-channel nor in search), titled with the chart's own title on their last day, such as *Bitcoin URPD (% USD, AGE) as of 24 Sept 2026* and *Bitcoin URPD (% BTC, LTH/STH) as of 24 Sept 2026*. Once
-YouTube lets others watch one, the
-workflow names it in `data/youtube.json` and its button on the site links to it; until then that button opens the
-channel.
-
-It needs the channel's OAuth credentials as three repository secrets. Without them the step does nothing. To set it up
-once:
-
-1. In the [Google Cloud console](https://console.cloud.google.com/projectcreate), create a project and enable the
-   **YouTube Data API v3** (APIs & Services → Library).
-2. In **Google Auth Platform** (the OAuth consent screen), choose the **External** audience, then **Publish app** so
-   its status is **In production**. An app left in *Testing* gets refresh tokens that stop working after 7 days.
-3. Under **Clients**, create an OAuth client of type **Web application** with the authorised redirect URI
-   `https://developers.google.com/oauthplayground`.
-4. In the [OAuth 2.0 Playground](https://developers.google.com/oauthplayground), open the settings (⚙), tick **Use your
-   own OAuth credentials** and enter the client's ID and secret. Authorise the scope
-   `https://www.googleapis.com/auth/youtube.upload` with the channel's Google account (past the *Google hasn't verified
-   this app* notice: **Advanced**, then continue), then **Exchange authorization code for tokens**.
-5. In this repository's **Settings → Secrets and variables → Actions**, add `YOUTUBE_CLIENT_ID`,
-   `YOUTUBE_CLIENT_SECRET` and `YOUTUBE_REFRESH_TOKEN`. Then run **Actions → YouTube credentials check → Run
-   workflow**: it asks Google for an access token with them and says whether that worked, uploading nothing.
-6. Until the project passes YouTube's API compliance audit, YouTube keeps every upload **private**, whatever the
-   request asks for. Ask for the audit with the
-   [YouTube API Services audit form](https://support.google.com/youtube/contact/yt_api_form); once it passes, the
-   uploads come out unlisted and the button links to the latest one.
-
-To stop posting, delete the three secrets (and remove the app's access at
-[myaccount.google.com/permissions](https://myaccount.google.com/permissions)).
-
 ## Security
 
 The site never asks you to install anything, connect a wallet or enter a seed phrase, and it offers no file to
-download: the video is on YouTube, and the chart's camera icon only saves a PNG of the chart, made in your browser. [SECURITY.md](SECURITY.md) explains how the page and the build are protected, and how to report a
+download: the chart's camera icon only saves a PNG of the chart, made in your browser. [SECURITY.md](SECURITY.md) explains how the page and the build are protected, and how to report a
 problem.
 
 ## Development checks
