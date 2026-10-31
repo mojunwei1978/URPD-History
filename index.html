@@ -2410,7 +2410,7 @@ async function init() {
   try {
     wordDateBox(function() { return t("loadingDates"); });
     var loaded = await Promise.all([
-      fetchJSON(BASE + "/api/series/date/day1").then(function(d){ return d && d.data ? d.data : []; }),
+      fetchJSON(BASE + "/api/series/date/day1").then(function(d){ return (d && d.data ? d.data : []).filter(function(x){ return x >= "2009-01-03"; }); }),
       fetchJSON(BASE + "/api/series/price_close/day1").catch(function(e) { console.warn("Price array preload failed:", e); return null; }),
       fetchJSON(BASE + "/api/series/date/day1").catch(function(e) { console.warn("Price date index preload failed, using UTC epoch fallback:", e); return null; }),
       // The axis history (see "Axes that only grow"). Without it every day still draws, on axes fitted to itself.
