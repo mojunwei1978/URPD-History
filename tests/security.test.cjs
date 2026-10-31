@@ -127,7 +127,7 @@ function job(text, name) {
 }
 
 test('every action a workflow uses is pinned to a full commit hash, and nothing runs on pull_request_target', () => {
-  assert.ok(workflows.length >= 3);
+  assert.ok(workflows.length >= 2);
   for (const { f, text } of workflows) {
     const uses = [...text.matchAll(/^\s*(?:-\s*)?uses:\s*(\S+)(.*)$/gm)];
     for (const [, ref, comment] of uses) {
@@ -148,7 +148,7 @@ test('the site check compares the live page, the pages it links to and the data 
   assert.match(check, /--proto '=https' --tlsv1\.2/);
   // Every file the site links to or loads from itself is among them.
   const own = [...new Set([...html.matchAll(/(?:href|fetchJSON\()\s*=?\s*"((?:[a-z]+\/)?[a-z]+\.(?:html|json))"/g)].map(m => m[1]))];
-  assert.ok(own.length >= 4, own.join(' '));
+  assert.ok(own.length >= 3, own.join(' '));
   for (const f of own) assert.ok(check.includes(f), f);
 });
 

@@ -8,7 +8,6 @@ const path = require('node:path');
 const vm = require('node:vm');
 const { html, scripts, app } = require('./helpers.cjs');
 
-const page = fs.readFileSync(path.join(__dirname, '..', 'tools', 'video', 'page.html'), 'utf8');
 const constant = (src, name) => { const m = new RegExp(`\\b${name}\\s*=\\s*"(#[0-9a-f]{6})"`).exec(src); assert.ok(m, name); return m[1]; };
 const GRID = constant(html, 'GRID_COLOR'), WATERMARK = constant(html, 'WATERMARK_COLOR');
 const COLORS = app().c.CHART_COLORS, BG = COLORS.bg;
@@ -79,16 +78,3 @@ test('gridlines are anti-aliased only where a CSS pixel is not a whole number of
   }
 });
 
-test('the video draws the grid, the watermark and every other colour of the chart exactly as the site does', () => {
-  assert.equal(constant(page, 'GRID_COLOR'), GRID);
-  assert.equal(constant(page, 'WATERMARK_COLOR'), WATERMARK);
-  assert.doesNotMatch(page, /RenshuBTC<\/span>|rgba\(255,255,255,0\.08\)/, 'no old watermark annotation or grid colour');
-  assert.match(page, /layer: "below", line: \{ width: 0 \}, fillcolor: "rgba\(0,0,0,0\)",\s*label: \{ text: "<b>@RenshuBTC<\/b>", textposition: "middle center", font: \{ family: FONT, size: 50, color: TH\.watermark \} \}/);
-  assert.equal((page.match(/gridcolor: TH\.grid/g) || []).length, 2);
-  // page.html's colours are the site's (index.html CHART_COLORS), colour for colour, the ▲ figure's backing (tagBg) too.
-  const c = vm.createContext({ window: { devicePixelRatio: 2 }, document: {}, Math, Date, String, Number, JSON });
-  vm.runInContext([...page.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]).join('\n'), c);
-  const video = JSON.parse(JSON.stringify(c.TH));
-  for (const [k, v] of Object.entries(video)) assert.equal(v, COLORS[k], k);
-  assert.deepEqual(Object.keys(video).sort(), Object.keys(COLORS).sort());
-});

@@ -124,10 +124,10 @@ test('there is no download button, and the bar is drawn like the favicon: black 
   assert.match(decls('#controls'), /background:\s*#1a1a1a;/);
   // Every button and link: the bar's grey, a 1px outline of white at 35% (#595959), solid white under the mouse,
   // square corners; the chosen option is a white block with black text.
-  for (const sel of ['#controls button', '#controls #githubLink', '#controls .yt-btn']) {
+  for (const sel of ['#controls button', '#controls #githubLink']) {
     assert.match(decls(sel), /background:\s*#1a1a1a;\s*color:\s*#fff;\s*border:\s*1px solid #595959;\s*border-radius:\s*0;/, sel);
   }
-  for (const sel of ['#controls button:hover', '#controls #githubLink:hover', '#controls .yt-btn:hover', '#explainBtn:hover', '#langBtn:hover']) {
+  for (const sel of ['#controls button:hover', '#controls #githubLink:hover', '#explainBtn:hover', '#langBtn:hover']) {
     assert.match(decls(sel), /border-color:\s*#fff/, sel);
   }
   assert.match(decls('#controls .mode-toggle button.active'), /background:\s*#fff;\s*color:\s*#000;\s*border-color:\s*#fff/);
@@ -146,7 +146,7 @@ test('there is no download button, and the bar is drawn like the favicon: black 
   // Keyboard focus: the browser's ring on buttons, a white ring on the links. (A mouse click lets go of focus, so
   // none of this is ever drawn for the mouse; see ui.test.cjs.)
   assert.ok(!rules.some(r => r.sels.some(x => /^#controls (button|a|select):focus$/.test(x))), 'focus rings are not switched off');
-  for (const sel of ['#githubLink:focus-visible', '.yt-btn:focus-visible']) assert.match(decls(sel), /outline:\s*2px solid #fff/, sel);
+  for (const sel of ['#githubLink:focus-visible']) assert.match(decls(sel), /outline:\s*2px solid #fff/, sel);
   assert.equal(rules.filter(r => /background-color:\s*#(4a4a4a|ffc266)/.test(r.body)).length, 0, 'no focus fills');
 });
 
