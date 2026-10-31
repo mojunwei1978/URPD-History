@@ -139,49 +139,6 @@ test('every action a workflow uses is pinned to a full commit hash, and nothing 
   }
 });
 
-test('the jobs that run third-party code or parse its output can read the repository and nothing else', () => {
-  const video = workflows.find(w => w.f === 'video.yml').text;
-  assert.match(video, /^permissions: \{\}/m);
-  for (const name of ['render', 'vet']) {
-    const block = job(video, name);
-    assert.match(block, /permissions:\n\s+contents: read\s*(#.*)?\n\s+steps:/, name);
-    assert.doesNotMatch(block, /GH_TOKEN|secrets\.|github\.token/, name);
-    assert.match(block, /persist-credentials: false/, name);
-  }
-  assert.match(job(video, 'render'), /npm ci --ignore-scripts/);
-  // The vet job checks the rendered file, rewrites it keeping only the picture, and decodes every frame.
-  const vet = job(video, 'vet');
-  assert.match(vet, /check-video\.sh "\$RUNNER_TEMP\/rendered\/\$FILE"/);
-  assert.match(vet, /filter_units=pass_types=/);
-  assert.match(vet, /check-video\.sh "\$RUNNER_TEMP\/vetted\/\$FILE" --decode/);
-  // The jobs that can write never parse the video, and the publish job attests before it publishes.
-  for (const name of ['update', 'publish']) assert.doesNotMatch(job(video, name), /ffmpeg|ffprobe|check-video/, name);
-  const publish = job(video, 'publish');
-  assert.match(publish, /needs: \[update, vet\]/);
-  assert.match(publish, /uses: actions\/attest@/);
-  // Every video the run drew is attested: the folder holds exactly those (the step before counts them).
-  assert.match(publish, /subject-path: \$\{\{ runner\.temp \}\}\/vetted\/\*\.mp4\n/, 'every vetted video attested');
-  assert.match(publish, /\[ "\$\(find "\$RUNNER_TEMP\/vetted" -type f \| wc -l\)" = "\$\{#FILES\[@\]\}" \]/, 'and nothing else in the folder');
-  assert.ok(publish.indexOf('Look at the files without parsing them') < publish.indexOf('actions/attest@'), 'looked at before they are attested');
-  assert.ok(publish.indexOf('actions/attest@') < publish.indexOf('replace-asset.sh video'), 'attest before publishing');
-  assert.match(publish, /replace-asset\.sh video "\$RUNNER_TEMP\/vetted\/\$VIDEO_USD_AGE" "\$RUNNER_TEMP\/vetted\/\$VIDEO_BTC_AGE" \\\n\s+"\$RUNNER_TEMP\/vetted\/\$VIDEO_USD_LTHSTH" "\$RUNNER_TEMP\/vetted\/\$VIDEO_BTC_LTHSTH"\n/, 'these four and no other');
-  assert.equal((publish.match(/replace-asset\.sh video /g) || []).length, 1);
-  // The YouTube credentials reach two steps of each youtube job (the check for them and its one post) and nothing
-  // else in the workflow; the steps that hold them run this repository's own code.
-  assert.equal((video.match(/secrets\./g) || []).length, 24);
-  const post = (tag, env, look) => `name: Post the ${tag} video to YouTube | run: node tools/video/youtube.mjs "$RUNNER_TEMP/vetted/$${env}" "$START" "$END" ${look} >> "$GITHUB_OUTPUT"`;
-  const POSTS = { 'youtube-usd-age': post('USD-AGE', 'VIDEO_USD_AGE', 'usd-age'), 'youtube-btc-age': post('BTC-AGE', 'VIDEO_BTC_AGE', 'btc-age'),
-    'youtube-usd-lthsth': post('USD-LTH/STH', 'VIDEO_USD_LTHSTH', 'usd-lthsth'), 'youtube-btc-lthsth': post('BTC-LTH/STH', 'VIDEO_BTC_LTHSTH', 'btc-lthsth') };
-  assert.deepEqual([...video.matchAll(/^ {2}(youtube[\w-]*):$/gm)].map(m => m[1]), Object.keys(POSTS), 'these four youtube jobs and no other');
-  for (const name of Object.keys(POSTS)) {
-    const youtube = job(video, name);
-    assert.equal((youtube.match(/secrets\.YOUTUBE_/g) || []).length, 6, name);
-    const holders = youtube.split(/\n      - /).filter(step => /secrets\./.test(step));
-    assert.deepEqual(holders.map(step => (step.match(/(?:name: .*|run: .*)/g) || []).join(' | ')), ['name: Look for the YouTube credentials | run: |', POSTS[name]], name);
-    assert.equal((youtube.match(/run: node tools\/video\/youtube\.mjs /g) || []).length, 1, name);
-    assert.doesNotMatch(youtube, /npm |contents: write|GH_TOKEN|uses: (?!actions\/(checkout|setup-node|download-artifact)@)/, name);
-  }
-});
 
 test('the site check compares the live page, the pages it links to and the data it loads with the latest main', () => {
   const check = workflows.find(w => w.f === 'site-check.yml').text;

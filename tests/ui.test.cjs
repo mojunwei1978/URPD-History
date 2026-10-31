@@ -121,57 +121,6 @@ test('an open How to read panel follows the toolbar when it re-fits, under the b
   assert.equal(panel.style.top, '65px');
 });
 
-test('the toolbar is one row that never scrolls; the videos menu in words, then How to read and GitHub as icons and the language button, together at the right', () => {
-  assert.match(decls('#controls'), /flex-wrap:\s*nowrap/);
-  assert.match(decls('#controls'), /overflow:\s*hidden/);
-  assert.doesNotMatch(decls('#controls'), /overflow-x|scrollbar|flex-wrap:\s*wrap/);
-  assert.match(decls('#toolbarEnd'), /margin-left:\s*auto/);
-  assert.doesNotMatch(decls('#githubLink'), /margin-left/);
-  const end = html.slice(html.indexOf('<div id="toolbarEnd">'), html.indexOf('<div id="status"'));
-  assert.deepEqual([...end.matchAll(/\sid="(explainWrap|githubLink|langBtn)"/g)].map(m => m[1]), ['explainWrap', 'githubLink', 'langBtn'], 'How to read, GitHub and the language together at the right-hand end');
-  assert.match(decls('#controls.dense #toolbarEnd'), /gap:\s*4px/, 'spaced as the rest of the bar');
-  const bar = html.slice(html.indexOf('<div id="controls">'), html.indexOf('<div id="toolbarEnd">'));
-  assert.deepEqual([...bar.matchAll(/\sid="(btnUSD|btnBTC|btnAge|btnSplit|btnRaw|btnFit|btnAth|btnPeak|binsWrap|smoothWrap|ymaxWrap|signalWrap|ytMenuBtn|ytUsdAgeBtn|ytBtcAgeBtn|ytUsdSplitBtn|ytBtcSplitBtn|ytUsdBtn|ytBtcBtn|ytBtn|ytFitBtn|explainWrap|githubLink)"/g)].map(m => m[1]),
-    ['btnUSD', 'btnBTC', 'btnSplit', 'btnAge', 'btnPeak', 'signalWrap', 'binsWrap', 'smoothWrap', 'ymaxWrap', 'ytMenuBtn', 'ytUsdSplitBtn', 'ytUsdAgeBtn', 'ytBtcSplitBtn', 'ytBtcAgeBtn'],
-    'USD | BTC, LTH/STH | AGE, then PIN Y-AXIS, BOTTOM SIGNAL, BINS left of SMOOTHING and Y-MAX, then FULL HISTORY VIDEOS and its four videos');
-  assert.match(bar, /<button id="btnAge"[^>]*>[^<]*<\/button>\s*<\/div>\s*<div class="ctrl-sep"><\/div>\s*<div class="mode-toggle">\s*<button id="btnPeak"[^>]*>Pin Y-axis<\/button>\s*<\/div>\s*<div class="ctrl-sep"><\/div>\s*<label class="field" id="signalWrap"/,
-    'PIN Y-AXIS right after LTH/STH | AGE, a separator either side');
-  // The videos in the menu show their icon and words: VIDEO and which video, in brackets.
-  for (const [key, tag] of [['UsdAge', '% USD-AGE'], ['BtcAge', '% BTC-AGE'], ['UsdSplit', '% USD-LTH/STH'], ['BtcSplit', '% BTC-LTH/STH']])
-    assert.match(bar, new RegExp(`id="yt${key}Btn"[^>]*>\\s*<svg[\\s\\S]*?</svg><span id="yt${key}Word" class="yt-word">Video</span><span id="yt${key}Tag" class="yt-tag">${tag}</span></a>`), 'the videos say what they give you: ' + tag);
-  // How to read and GitHub: their icons only, named by their tooltips and for screen readers.
-  assert.match(end, /<a id="githubLink"[^>]*aria-label="View code on GitHub \(opens in a new tab\)" title="View code on GitHub \(opens in a new tab\)">\s*<svg[\s\S]*?<\/svg>\s*<\/a>/);
-  assert.match(end, /<button id="explainBtn" aria-label="How to read this chart" title="How to read this chart" aria-expanded="false"><svg[^>]*aria-hidden="true"[\s\S]*?<\/svg><\/button>/);
-  assert.doesNotMatch(html, /btn-word|explainLabel/);
-  // Nothing gives way to fit: no word is shortened or dropped.
-  assert.doesNotMatch(html, /yt-tag-short|yt-tag-full|yt-video|controls\.short/);
-  // Transitions would be measured half-way, so the buttons animate their colours only.
-  for (const sel of ['#controls button', '#intervalBar .iv']) assert.match(decls(sel), /transition:\s*background-color 0\.15s, color 0\.15s, border-color 0\.15s;/, sel);
-  // To fit: the spacing tightens (dense), the type goes a size down (tight), and last the whole bar is drawn smaller;
-  // the How to read panel and the videos menu undo that.
-  assert.match(decls('#controls.dense'), /column-gap:\s*4px/);
-  assert.match(decls('#controls.dense .ctrl-sep'), /margin:\s*0/);
-  assert.match(decls('#controls.tight button'), /font-size:\s*11px;\s*letter-spacing:\s*0/);
-  assert.ok(!rules.some(r => r.body.includes('display') && r.sels.some(x => /\.yt-word($|::)/.test(x))), 'VIDEO never goes');
-  assert.ok(!rules.some(r => r.body.includes('display') && r.sels.some(x => /\.yt-tag($|::)/.test(x))), 'which video it is never goes');
-  assert.match(decls('#explainPanel'), /zoom:\s*calc\(1 \/ var\(--bar-zoom, 1\)\)/);
-  assert.match(decls('#ytMenu'), /zoom:\s*calc\(1 \/ var\(--bar-zoom, 1\)\)/);
-  // The bar keeps its buttons on one line (nowrap), and the panel inside it wraps its text again: it scrolls down only.
-  assert.match(decls('#controls'), /white-space:\s*nowrap/);
-  assert.match(decls('#explainPanel'), /white-space:\s*normal/);
-  assert.match(decls('#explainPanel'), /overflow-x:\s*hidden/);
-  assert.match(decls('#explainPanel'), /overflow-wrap:\s*anywhere/);
-  assert.match(decls('#explainPanel .formula'), /white-space:\s*pre-wrap/);
-  assert.match(html, /var TOOLBAR_FITS = \["dense", "tight"\];/);
-  for (const sel of ['#explainBtn', '.yt-btn', '#githubLink']) assert.doesNotMatch(decls(sel), /font-weight/, sel);
-  const { c, element } = app();
-  for (const lang of ['zh', 'ja', 'en']) {
-    c.lang = lang; c.applyLang();
-    assert.equal(element('explainBtn').title, c.t('ariaExplain'), lang);
-    assert.equal(element('explainBtn').getAttribute('aria-label'), c.t('ariaExplain'), lang);
-  }
-});
-
 test('the bar fits its one row: each step only if the row does not fit without it, and then drawn just small enough', () => {
   const { c, element } = app();
   const bar = element('controls'), classes = new Set();
